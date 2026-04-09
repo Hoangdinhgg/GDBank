@@ -1,0 +1,43 @@
+name: Import Geode example-mod missing files
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone source repo
+        run: git clone --depth 1 https://github.com/geode-sdk/example-mod.git /tmp/example-mod
+
+      - name: Copy only missing files and folders
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --ignore-existing --exclude='.git' /tmp/example-mod/ "$GITHUB_WORKSPACE"/
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "Import missing files from geode-sdk/example-mod"
+          git push
